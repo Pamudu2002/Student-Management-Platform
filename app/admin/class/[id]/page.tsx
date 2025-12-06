@@ -40,6 +40,8 @@ export default function ClassDetailPage({
   const [activeTab, setActiveTab] = useState<'students' | 'papers'>('students');
   const [showAddStudent, setShowAddStudent] = useState(false);
   const [showAddPaper, setShowAddPaper] = useState(false);
+  const [showEditStudent, setShowEditStudent] = useState(false);
+  const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -90,6 +92,32 @@ export default function ClassDetailPage({
 
   const handlePaperClick = (paperId: string) => {
     router.push(`/admin/paper/${paperId}`);
+  };
+
+  const handleEditStudent = (student: Student) => {
+    setEditingStudent(student);
+    setShowEditStudent(true);
+  };
+
+  const handleDeleteStudent = async (studentId: string, studentName: string) => {
+    if (!confirm(`Are you sure you want to delete ${studentName}? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/students/${studentId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        fetchStudents();
+      } else {
+        alert('Failed to delete student');
+      }
+    } catch (error) {
+      console.error('Failed to delete student:', error);
+      alert('Failed to delete student');
+    }
   };
 
   if (loading || !classData) {
@@ -173,6 +201,9 @@ export default function ClassDetailPage({
                       <th className="px-6 py-3 text-left text-xs font-medium text-primary-700 uppercase tracking-wider">
                         Grade
                       </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-primary-700 uppercase tracking-wider">
+                        Actions
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -189,6 +220,22 @@ export default function ClassDetailPage({
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                           Grade {student.grade}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleEditStudent(student)}
+                              className="px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDeleteStudent(student._id, student.name)}
+                              className="px-3 py-1 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
+                            >
+                              Delete
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -261,6 +308,22 @@ export default function ClassDetailPage({
           onClose={() => setShowAddStudent(false)}
           onSuccess={() => {
             setShowAddStudent(false);
+            fetchStudents();
+          }}
+        />
+      )}
+
+      {/* Edit Student Modal */}
+      {showEditStudent && editingStudent && (
+        <EditStudentModal
+          student={editingStudent}
+          onClose={() => {
+            setShowEditStudent(false);
+            setEditingStudent(null);
+          }}
+          onSuccess={() => {
+            setShowEditStudent(false);
+            setEditingStudent(null);
             fetchStudents();
           }}
         />
@@ -363,6 +426,102 @@ function AddStudentModal({
               className="flex-1 btn-primary disabled:opacity-50"
             >
               {loading ? 'Adding...' : 'Add Student'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function EditStudentModal({
+  student,
+  onClose,
+  onSuccess,
+}: {
+  student: Student;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const [name, setName] = useState(student.name);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      const response = await fetch(`/api/students/${student._id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        onSuccess();
+      } else {
+        setError(data.error || 'Failed to update student');
+      }
+    } catch (error) {
+      console.error('Failed to update student:', error);
+      setError('Failed to update student');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
+        <h2 className="text-2xl font-bold text-gray-900 mb-4">Edit Student</h2>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Student Name
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="input-field"
+              placeholder="Enter student name"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Index Number
+            </label>
+            <input
+              type="text"
+              value={student.indexNumber}
+              className="input-field bg-gray-100"
+              disabled
+            />
+          </div>
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
+          <div className="flex gap-3 mt-6">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 btn-secondary"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 btn-primary disabled:opacity-50"
+            >
+              {loading ? 'Updating...' : 'Update Student'}
             </button>
           </div>
         </form>

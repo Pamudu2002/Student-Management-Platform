@@ -17,6 +17,7 @@ interface Student {
 interface Result {
   _id: string;
   paperId: {
+    _id: string;
     name: string;
     isMainPaper: boolean;
   };
@@ -28,6 +29,11 @@ interface Result {
 }
 
 interface TopResult {
+  paperId?: {
+    _id: string;
+    name: string;
+    isMainPaper: boolean;
+  };
   studentId: {
     name: string;
     indexNumber: string;
@@ -45,10 +51,12 @@ export default function StudentResults({
 }) {
   const router = useRouter();
   const [student, setStudent] = useState<Student | null>(null);
-  const [recentResult, setRecentResult] = useState<Result | null>(null);
+  const [recentResults, setRecentResults] = useState<Result[]>([]);
   const [pastResults, setPastResults] = useState<Result[]>([]);
   const [topResults, setTopResults] = useState<TopResult[]>([]);
   const [view, setView] = useState<'recent' | 'past' | 'top'>('recent');
+  const [pastFilter, setPastFilter] = useState<'all' | 'main' | 'normal'>('all');
+  const [topFilter, setTopFilter] = useState<'all' | 'main' | 'normal'>('all');
   const [loading, setLoading] = useState(true);
   const [topLimit, setTopLimit] = useState(10);
 
@@ -82,11 +90,27 @@ export default function StudentResults({
   const fetchRecentResult = async () => {
     try {
       const response = await fetch(
-        `/api/results/recent/${params.indexNumber}`
+        `/api/results/past/${params.indexNumber}`
       );
       if (response.ok) {
         const data = await response.json();
-        setRecentResult(data.result);
+        // Get the most recent results (could be multiple if added at same time)
+        const sortedResults = data.results.sort(
+          (a: Result, b: Result) => 
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+        // For Grade 5, show recent main and recent normal
+        if (data.student.grade === 5) {
+          const recentMain = sortedResults.find((r: Result) => r.paperId.isMainPaper);
+          const recentNormal = sortedResults.find((r: Result) => !r.paperId.isMainPaper);
+          const recent = [];
+          if (recentMain) recent.push(recentMain);
+          if (recentNormal) recent.push(recentNormal);
+          setRecentResults(recent);
+        } else {
+          // For Grade 3 and 4, show just the most recent
+          setRecentResults(sortedResults.length > 0 ? [sortedResults[0]] : []);
+        }
       }
     } catch (error) {
       console.error('Failed to fetch recent result:', error);
@@ -110,12 +134,50 @@ export default function StudentResults({
       const response = await fetch(`/api/results/top/${params.indexNumber}`);
       if (response.ok) {
         const data = await response.json();
-        setTopResults(data.topResults);
+        console.log('Top results data:', data);
+        console.log('Top results array:', data.topResults);
+        setTopResults(data.topResults || []);
         setTopLimit(data.limit);
+      } else {
+        console.error('Failed to fetch top results:', response.status, response.statusText);
       }
     } catch (error) {
       console.error('Failed to fetch top results:', error);
     }
+  };
+
+  const getFilteredTopResults = () => {
+    let filtered = topResults;
+    
+    // For Grade 5, filter by paper type
+    if (student?.grade === 5 && topFilter !== 'all') {
+      filtered = topResults.filter((result) => {
+        const isMain = result.paperId?.isMainPaper === true;
+        console.log('Result:', result.studentId?.name, 'isMain:', isMain, 'paperId:', result.paperId);
+        if (topFilter === 'main') return isMain;
+        return !isMain;
+      });
+    }
+    
+    // Group by student and keep their best result in the filtered set
+    const studentBestResults = new Map();
+    for (const result of filtered) {
+      const studentIndexNumber = result.studentId?.indexNumber;
+      if (studentIndexNumber) {
+        if (!studentBestResults.has(studentIndexNumber) || 
+            result.totalMarks > studentBestResults.get(studentIndexNumber).totalMarks) {
+          studentBestResults.set(studentIndexNumber, result);
+        }
+      }
+    }
+    
+    // Convert to array and sort by total marks, then limit
+    const uniqueResults = Array.from(studentBestResults.values())
+      .sort((a, b) => b.totalMarks - a.totalMarks)
+      .slice(0, topLimit || 5);
+    
+    console.log(`Filtered results for ${topFilter}:`, uniqueResults.length);
+    return uniqueResults;
   };
 
   const handleViewChange = (newView: 'recent' | 'past' | 'top') => {
@@ -198,51 +260,63 @@ export default function StudentResults({
 
         {/* Recent Result View */}
         {view === 'recent' && (
-          <div className="bg-white rounded-xl shadow-md p-8">
-            {recentResult ? (
-              <div>
-                <h2 className="text-2xl font-bold text-gray-800 mb-6">
-                  {recentResult.paperId.name}
-                </h2>
-                {recentResult.paperId.isMainPaper ? (
-                  <div className="space-y-4">
+          <div className="space-y-6">
+            {recentResults.length > 0 ? (
+              recentResults.map((result) => (
+                <div key={result._id} className="bg-white rounded-xl shadow-md p-8">
+                  <div className="flex justify-between items-start mb-6">
+                    <h2 className="text-2xl font-bold text-gray-800">
+                      {result.paperId.name}
+                    </h2>
+                    {result.paperId.isMainPaper && (
+                      <span className="bg-primary-100 text-primary-700 px-3 py-1 rounded-full text-sm font-medium">
+                        Main Paper
+                      </span>
+                    )}
+                  </div>
+                  {result.paperId.isMainPaper ? (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="bg-primary-50 p-6 rounded-lg">
-                        <p className="text-sm text-gray-600 mb-1">Part 1</p>
-                        <p className="text-3xl font-bold text-primary-700">
-                          {recentResult.part1Marks}
+                      <div className="bg-gradient-to-br from-primary-50 to-primary-100 p-6 rounded-lg border border-primary-200">
+                        <p className="text-sm text-gray-600 mb-2 font-medium">Part 1 Marks</p>
+                        <p className="text-4xl font-bold text-primary-700">
+                          {result.part1Marks}
                         </p>
                       </div>
-                      <div className="bg-primary-50 p-6 rounded-lg">
-                        <p className="text-sm text-gray-600 mb-1">Part 2</p>
-                        <p className="text-3xl font-bold text-primary-700">
-                          {recentResult.part2Marks}
+                      <div className="bg-gradient-to-br from-primary-50 to-primary-100 p-6 rounded-lg border border-primary-200">
+                        <p className="text-sm text-gray-600 mb-2 font-medium">Part 2 Marks</p>
+                        <p className="text-4xl font-bold text-primary-700">
+                          {result.part2Marks}
                         </p>
                       </div>
-                      <div className="bg-primary-100 p-6 rounded-lg">
-                        <p className="text-sm text-gray-600 mb-1">
-                          Total Marks
-                        </p>
-                        <p className="text-3xl font-bold text-primary-700">
-                          {recentResult.totalMarks}
+                      <div className="bg-gradient-to-br from-primary-100 to-primary-200 p-6 rounded-lg border-2 border-primary-400">
+                        <p className="text-sm text-gray-700 mb-2 font-medium">Total Marks</p>
+                        <p className="text-4xl font-bold text-primary-800">
+                          {result.totalMarks}
                         </p>
                       </div>
                     </div>
-                  </div>
-                ) : (
-                  <div className="bg-primary-50 p-6 rounded-lg inline-block">
-                    <p className="text-sm text-gray-600 mb-1">Your Marks</p>
-                    <p className="text-4xl font-bold text-primary-700">
-                      {recentResult.marks}
-                    </p>
-                  </div>
-                )}
-              </div>
+                  ) : (
+                    <div className="flex justify-center">
+                      <div className="bg-gradient-to-br from-primary-100 to-primary-200 p-8 rounded-lg border-2 border-primary-400 min-w-[250px] text-center">
+                        <p className="text-sm text-gray-700 mb-2 font-medium">Your Marks</p>
+                        <p className="text-5xl font-bold text-primary-800">
+                          {result.marks}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  <p className="text-sm text-gray-500 mt-4">
+                    Date: {new Date(result.createdAt).toLocaleDateString('en-GB')}
+                  </p>
+                </div>
+              ))
             ) : (
-              <div className="text-center py-12">
-                <p className="text-gray-500 text-lg">
-                  No recent results available
-                </p>
+              <div className="bg-white rounded-xl shadow-md p-8">
+                <div className="text-center py-12">
+                  <p className="text-gray-500 text-lg">
+                    No recent results available
+                  </p>
+                </div>
               </div>
             )}
           </div>
@@ -251,6 +325,44 @@ export default function StudentResults({
         {/* Past Results View */}
         {view === 'past' && (
           <div className="bg-white rounded-xl shadow-md overflow-hidden">
+            {/* Filter Toggle for Grade 5 */}
+            {student.grade === 5 && pastResults.length > 0 && (
+              <div className="p-6 border-b border-gray-200">
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setPastFilter('all')}
+                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                      pastFilter === 'all'
+                        ? 'bg-primary-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    All Papers
+                  </button>
+                  <button
+                    onClick={() => setPastFilter('main')}
+                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                      pastFilter === 'main'
+                        ? 'bg-primary-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Main Papers Only
+                  </button>
+                  <button
+                    onClick={() => setPastFilter('normal')}
+                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                      pastFilter === 'normal'
+                        ? 'bg-primary-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Normal Papers Only
+                  </button>
+                </div>
+              </div>
+            )}
+            
             {pastResults.length > 0 ? (
               <div className="overflow-x-auto">
                 <table className="w-full">
@@ -278,49 +390,55 @@ export default function StudentResults({
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {pastResults.map((result) => (
-                      <tr
-                        key={result._id}
-                        className="hover:bg-gray-50 transition-colors"
-                      >
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {result.paperId.name}
-                          {result.paperId.isMainPaper && (
-                            <span className="ml-2 text-xs bg-primary-100 text-primary-700 px-2 py-1 rounded">
-                              Main
-                            </span>
+                    {pastResults
+                      .filter((result) => {
+                        if (student.grade !== 5 || pastFilter === 'all') return true;
+                        if (pastFilter === 'main') return result.paperId.isMainPaper;
+                        return !result.paperId.isMainPaper;
+                      })
+                      .map((result) => (
+                        <tr
+                          key={result._id}
+                          className="hover:bg-gray-50 transition-colors"
+                        >
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {result.paperId.name}
+                            {result.paperId.isMainPaper && (
+                              <span className="ml-2 text-xs bg-primary-100 text-primary-700 px-2 py-1 rounded">
+                                Main
+                              </span>
+                            )}
+                          </td>
+                          {student.grade === 5 && result.paperId.isMainPaper && (
+                            <>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                {result.part1Marks}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                {result.part2Marks}
+                              </td>
+                            </>
                           )}
-                        </td>
-                        {student.grade === 5 && result.paperId.isMainPaper && (
-                          <>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                              {result.part1Marks}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                              {result.part2Marks}
-                            </td>
-                          </>
-                        )}
-                        {student.grade === 5 && !result.paperId.isMainPaper && (
-                          <>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                              -
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                              -
-                            </td>
-                          </>
-                        )}
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-primary-700">
-                          {result.paperId.isMainPaper
-                            ? result.totalMarks
-                            : result.marks}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                          {new Date(result.createdAt).toLocaleDateString()}
-                        </td>
-                      </tr>
-                    ))}
+                          {student.grade === 5 && !result.paperId.isMainPaper && (
+                            <>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                -
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                -
+                              </td>
+                            </>
+                          )}
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-primary-700">
+                            {result.paperId.isMainPaper
+                              ? result.totalMarks
+                              : result.marks}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                            {new Date(result.createdAt).toLocaleDateString('en-GB')}
+                          </td>
+                        </tr>
+                      ))}
                   </tbody>
                 </table>
               </div>
@@ -334,70 +452,100 @@ export default function StudentResults({
 
         {/* Top Rankings View */}
         {view === 'top' && (
-          <div className="bg-white rounded-xl shadow-md p-8">
-            <h2 className="text-2xl font-bold text-gray-800 mb-6">
-              Top {topLimit} Students - Recent Paper
-            </h2>
-            {topResults.length > 0 ? (
-              <div className="space-y-3">
-                {topResults.map((result, index) => {
-                  const isCurrentStudent =
-                    result.studentId.indexNumber === params.indexNumber;
-                  return (
-                    <div
-                      key={index}
-                      className={`flex items-center justify-between p-4 rounded-lg transition-colors ${
-                        isCurrentStudent
-                          ? 'bg-primary-100 border-2 border-primary-600'
-                          : 'bg-gray-50 hover:bg-gray-100'
-                      }`}
-                    >
-                      <div className="flex items-center gap-4">
-                        <div
-                          className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
-                            index < 3
-                              ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white'
-                              : 'bg-gray-300 text-gray-700'
-                          }`}
-                        >
-                          {index + 1}
-                        </div>
-                        <div>
-                          <p className="font-semibold text-gray-900">
-                            {result.studentId.name}
-                            {isCurrentStudent && (
-                              <span className="ml-2 text-xs bg-primary-600 text-white px-2 py-1 rounded">
-                                You
-                              </span>
-                            )}
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            {result.studentId.indexNumber}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-2xl font-bold text-primary-700">
-                          {result.totalMarks}
-                        </p>
-                        {result.part1Marks !== undefined &&
-                          result.part2Marks !== undefined && (
-                            <p className="text-xs text-gray-600">
-                              P1: {result.part1Marks} | P2: {result.part2Marks}
-                            </p>
-                          )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <p className="text-gray-500 text-lg">
-                  No rankings available yet
-                </p>
+          <div className="bg-white rounded-xl shadow-md overflow-hidden">
+            {/* Filter Toggle for Grade 5 */}
+            {student.grade === 5 && topResults.length > 0 && (
+              <div className="p-6 border-b border-gray-200">
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setTopFilter('main')}
+                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                      topFilter === 'main'
+                        ? 'bg-primary-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Main Paper
+                  </button>
+                  <button
+                    onClick={() => setTopFilter('normal')}
+                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                      topFilter === 'normal'
+                        ? 'bg-primary-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Normal Papers
+                  </button>
+                </div>
               </div>
             )}
+            
+            <div className="p-8">
+              <h2 className="text-2xl font-bold text-gray-800 mb-6">
+                Top {topLimit} Students - Recent Paper
+              </h2>
+              {getFilteredTopResults().length > 0 ? (
+                <div className="space-y-3">
+                  {getFilteredTopResults().map((result, index) => {
+                    const isCurrentStudent =
+                      result.studentId.indexNumber === params.indexNumber;
+                    return (
+                      <div
+                        key={index}
+                        className={`flex items-center justify-between p-4 rounded-lg transition-colors ${
+                          isCurrentStudent
+                            ? 'bg-primary-100 border-2 border-primary-600'
+                            : 'bg-gray-50 hover:bg-gray-100'
+                        }`}
+                      >
+                        <div className="flex items-center gap-4">
+                          <div
+                            className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
+                              index < 3
+                                ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white'
+                                : 'bg-gray-300 text-gray-700'
+                            }`}
+                          >
+                            {index + 1}
+                          </div>
+                          <div>
+                            <p className="font-semibold text-gray-900">
+                              {result.studentId.name}
+                              {isCurrentStudent && (
+                                <span className="ml-2 text-xs bg-primary-600 text-white px-2 py-1 rounded">
+                                  You
+                                </span>
+                              )}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              {result.studentId.indexNumber}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-2xl font-bold text-primary-700">
+                            {result.totalMarks}
+                          </p>
+                          {result.part1Marks !== undefined &&
+                            result.part2Marks !== undefined && (
+                              <p className="text-xs text-gray-600">
+                                P1: {result.part1Marks} | P2: {result.part2Marks}
+                              </p>
+                            )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <p className="text-gray-500 text-lg">
+                    No rankings available yet
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </main>

@@ -6,13 +6,14 @@ import Paper from '@/models/Paper';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { indexNumber: string } }
+  { params }: { params: Promise<{ indexNumber: string }> }
 ) {
   try {
     await dbConnect();
+    const { indexNumber } = await params;
 
     const student = await Student.findOne({
-      indexNumber: params.indexNumber,
+      indexNumber: indexNumber,
     }).populate('classId');
 
     if (!student) {
