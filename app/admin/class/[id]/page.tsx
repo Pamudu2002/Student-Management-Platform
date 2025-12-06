@@ -1,0 +1,478 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+
+interface Class {
+  _id: string;
+  name: string;
+  grade: number;
+}
+
+interface Student {
+  _id: string;
+  name: string;
+  indexNumber: string;
+  classId: string;
+  grade: number;
+}
+
+interface Paper {
+  _id: string;
+  name: string;
+  classId: string;
+  grade: number;
+  isMainPaper: boolean;
+  createdAt: string;
+}
+
+export default function ClassDetailPage({
+  params,
+}: {
+  params: { id: string };
+}) {
+  const { status } = useSession();
+  const router = useRouter();
+  const [classData, setClassData] = useState<Class | null>(null);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [papers, setPapers] = useState<Paper[]>([]);
+  const [activeTab, setActiveTab] = useState<'students' | 'papers'>('students');
+  const [showAddStudent, setShowAddStudent] = useState(false);
+  const [showAddPaper, setShowAddPaper] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/admin/login');
+    }
+  }, [status, router]);
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      fetchClassData();
+      fetchStudents();
+      fetchPapers();
+    }
+  }, [status]);
+
+  const fetchClassData = async () => {
+    try {
+      const response = await fetch(`/api/classes/${params.id}`);
+      const data = await response.json();
+      setClassData(data.class);
+    } catch (error) {
+      console.error('Failed to fetch class:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchStudents = async () => {
+    try {
+      const response = await fetch(`/api/students?classId=${params.id}`);
+      const data = await response.json();
+      setStudents(data.students);
+    } catch (error) {
+      console.error('Failed to fetch students:', error);
+    }
+  };
+
+  const fetchPapers = async () => {
+    try {
+      const response = await fetch(`/api/papers?classId=${params.id}`);
+      const data = await response.json();
+      setPapers(data.papers);
+    } catch (error) {
+      console.error('Failed to fetch papers:', error);
+    }
+  };
+
+  const handlePaperClick = (paperId: string) => {
+    router.push(`/admin/paper/${paperId}`);
+  };
+
+  if (loading || !classData) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-xl text-primary-600">Loading...</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <button
+                onClick={() => router.push('/admin/dashboard')}
+                className="text-primary-600 hover:text-primary-700 mb-2 text-sm"
+              >
+                ← Back to Dashboard
+              </button>
+              <h1 className="text-2xl font-bold text-primary-700">
+                {classData.name} - Grade {classData.grade}
+              </h1>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Tabs */}
+        <div className="flex gap-2 mb-6 border-b border-gray-200">
+          <button
+            onClick={() => setActiveTab('students')}
+            className={`px-6 py-3 font-medium transition-colors ${
+              activeTab === 'students'
+                ? 'text-primary-600 border-b-2 border-primary-600'
+                : 'text-gray-600 hover:text-gray-800'
+            }`}
+          >
+            Students
+          </button>
+          <button
+            onClick={() => setActiveTab('papers')}
+            className={`px-6 py-3 font-medium transition-colors ${
+              activeTab === 'papers'
+                ? 'text-primary-600 border-b-2 border-primary-600'
+                : 'text-gray-600 hover:text-gray-800'
+            }`}
+          >
+            Papers & Marks
+          </button>
+        </div>
+
+        {/* Students Tab */}
+        {activeTab === 'students' && (
+          <div>
+            <div className="mb-6">
+              <button
+                onClick={() => setShowAddStudent(true)}
+                className="btn-primary"
+              >
+                + Add Student
+              </button>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-md overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-primary-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-primary-700 uppercase tracking-wider">
+                        Index Number
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-primary-700 uppercase tracking-wider">
+                        Name
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-primary-700 uppercase tracking-wider">
+                        Grade
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {students.map((student) => (
+                      <tr
+                        key={student._id}
+                        className="hover:bg-gray-50 transition-colors"
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {student.indexNumber}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                          {student.name}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                          Grade {student.grade}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {students.length === 0 && (
+                <div className="text-center py-12">
+                  <p className="text-gray-500">
+                    No students added yet. Add your first student to get
+                    started.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Papers Tab */}
+        {activeTab === 'papers' && (
+          <div>
+            <div className="mb-6">
+              <button
+                onClick={() => setShowAddPaper(true)}
+                className="btn-primary"
+              >
+                + Add Paper
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {papers.map((paper) => (
+                <div
+                  key={paper._id}
+                  onClick={() => handlePaperClick(paper._id)}
+                  className="card cursor-pointer hover:scale-105 transition-transform"
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="text-xl font-semibold text-gray-800">
+                      {paper.name}
+                    </h3>
+                    {paper.isMainPaper && (
+                      <span className="bg-primary-100 text-primary-700 px-3 py-1 rounded-full text-xs font-medium">
+                        Main Paper
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-gray-600 text-sm">
+                    Click to manage marks
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            {papers.length === 0 && (
+              <div className="text-center py-12">
+                <p className="text-gray-500 text-lg">
+                  No papers added yet. Create your first paper to get started.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+      </main>
+
+      {/* Add Student Modal */}
+      {showAddStudent && (
+        <AddStudentModal
+          classId={params.id}
+          onClose={() => setShowAddStudent(false)}
+          onSuccess={() => {
+            setShowAddStudent(false);
+            fetchStudents();
+          }}
+        />
+      )}
+
+      {/* Add Paper Modal */}
+      {showAddPaper && (
+        <AddPaperModal
+          classId={params.id}
+          grade={classData.grade}
+          onClose={() => setShowAddPaper(false)}
+          onSuccess={() => {
+            setShowAddPaper(false);
+            fetchPapers();
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function AddStudentModal({
+  classId,
+  onClose,
+  onSuccess,
+}: {
+  classId: string;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const [name, setName] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      const response = await fetch('/api/students', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, classId }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        onSuccess();
+      } else {
+        setError(data.error || 'Failed to add student');
+      }
+    } catch (err) {
+      setError('An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-2xl p-8 w-full max-w-md">
+        <h2 className="text-2xl font-bold text-primary-700 mb-6">
+          Add New Student
+        </h2>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Student Name
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="input-field"
+              placeholder="Enter student name"
+              required
+            />
+            <p className="mt-2 text-sm text-gray-500">
+              Index number will be auto-generated
+            </p>
+          </div>
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
+          <div className="flex gap-3 mt-6">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 btn-secondary"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 btn-primary disabled:opacity-50"
+            >
+              {loading ? 'Adding...' : 'Add Student'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function AddPaperModal({
+  classId,
+  grade,
+  onClose,
+  onSuccess,
+}: {
+  classId: string;
+  grade: number;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const [name, setName] = useState('');
+  const [isMainPaper, setIsMainPaper] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      const response = await fetch('/api/papers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, classId, isMainPaper }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        onSuccess();
+      } else {
+        setError(data.error || 'Failed to add paper');
+      }
+    } catch (err) {
+      setError('An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-2xl p-8 w-full max-w-md">
+        <h2 className="text-2xl font-bold text-primary-700 mb-6">
+          Add New Paper
+        </h2>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Paper Name
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="input-field"
+              placeholder="e.g., Mathematics Test"
+              required
+            />
+          </div>
+          {grade === 5 && (
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="isMainPaper"
+                checked={isMainPaper}
+                onChange={(e) => setIsMainPaper(e.target.checked)}
+                className="w-4 h-4 text-primary-600 rounded"
+              />
+              <label
+                htmlFor="isMainPaper"
+                className="ml-2 text-sm text-gray-700"
+              >
+                This is a Main Paper (with Part 1 and Part 2)
+              </label>
+            </div>
+          )}
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
+          <div className="flex gap-3 mt-6">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 btn-secondary"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 btn-primary disabled:opacity-50"
+            >
+              {loading ? 'Adding...' : 'Add Paper'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
