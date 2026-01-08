@@ -198,9 +198,9 @@ export default function StudentResults({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 bg-cover bg-center bg-no-repeat bg-fixed" style={{ backgroundImage: 'url(/assets/bg.png)' }}>
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
+      <header className="bg-white/95 backdrop-blur-sm shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
             <div>
@@ -263,7 +263,7 @@ export default function StudentResults({
           <div className="space-y-6">
             {recentResults.length > 0 ? (
               recentResults.map((result) => (
-                <div key={result._id} className="bg-white rounded-xl shadow-md p-8">
+                <div key={result._id} className="bg-white/95 backdrop-blur-sm rounded-xl shadow-md p-8">
                   <div className="flex justify-between items-start mb-6">
                     <h2 className="text-2xl font-bold text-gray-800">
                       {result.paperId.name}
@@ -311,7 +311,7 @@ export default function StudentResults({
                 </div>
               ))
             ) : (
-              <div className="bg-white rounded-xl shadow-md p-8">
+              <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-md p-8">
                 <div className="text-center py-12">
                   <p className="text-gray-500 text-lg">
                     No recent results available
@@ -324,7 +324,7 @@ export default function StudentResults({
 
         {/* Past Results View */}
         {view === 'past' && (
-          <div className="bg-white rounded-xl shadow-md overflow-hidden">
+          <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-md overflow-hidden">
             {/* Filter Toggle for Grade 5 */}
             {student.grade === 5 && pastResults.length > 0 && (
               <div className="p-6 border-b border-gray-200">
@@ -452,7 +452,7 @@ export default function StudentResults({
 
         {/* Top Rankings View */}
         {view === 'top' && (
-          <div className="bg-white rounded-xl shadow-md overflow-hidden">
+          <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-md overflow-hidden">
             {/* Filter Toggle for Grade 5 */}
             {student.grade === 5 && topResults.length > 0 && (
               <div className="p-6 border-b border-gray-200">
