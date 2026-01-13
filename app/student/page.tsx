@@ -31,8 +31,9 @@ export default function StudentPortal() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: 'url(/assets/bg.png)' }}>
-      <div className="bg-white/95 backdrop-blur-sm p-8 rounded-2xl shadow-xl w-full max-w-md">
+    <div 
+  className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100 bg-cover bg-center bg-no-repeat bg-[url('/assets/bgp.png')] md:bg-[url('/assets/bg.png')]">
+      <div className="bg-white/95 backdrop-blur-sm p-8 rounded-2xl shadow-xl w-full max-w-md mx-5">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-primary-700 mb-2">
             Student Portal
