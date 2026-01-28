@@ -507,7 +507,11 @@ export default function StudentResults({
               </h2>
               {getFilteredTopResults().length > 0 ? (
                 <div className="space-y-3">
-                  {getFilteredTopResults().map((result, index) => {
+                  {getFilteredTopResults().map((result, index, allResults) => {
+                    const rank =
+                      allResults.findIndex(
+                        (r) => r.totalMarks === result.totalMarks
+                      ) + 1;
                     const isCurrentStudent =
                       result.studentId.indexNumber === params.indexNumber;
                     return (
@@ -522,16 +526,16 @@ export default function StudentResults({
                         <div className="flex items-center gap-4">
                           <div
                             className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg shadow-sm border-2 ${
-                              index === 0
+                              rank === 1
                                 ? 'bg-yellow-400 text-white border-yellow-300'
-                                : index === 1
+                                : rank === 2
                                 ? 'bg-gray-300 text-gray-700 border-gray-200'
-                                : index === 2
+                                : rank === 3
                                 ? 'bg-orange-400 text-white border-orange-300'
                                 : 'bg-blue-50 text-blue-600 border-blue-100'
                             }`}
                           >
-                            {index + 1}
+                            {rank}
                           </div>
                           <div>
                             <p className="font-bold text-gray-900 flex items-center gap-2">
