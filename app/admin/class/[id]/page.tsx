@@ -118,16 +118,17 @@ export default function ClassDetailPage({
           <style>
             body { font-family: 'Noto Sans Sinhala', sans-serif, Arial; padding: 20px; text-align: center; }
             .header { margin-bottom: 20px; }
-            .title { font-size: 18px; font-weight: bold; margin-bottom: 5px; }
-            .subtitle { font-size: 16px; margin-bottom: 5px; }
-            .paper-name { font-size: 16px; margin-bottom: 10px; }
-            .top-label { font-size: 16px; font-weight: bold; text-decoration: underline; margin-bottom: 15px; }
+            .title { font-size: 24px; font-weight: bold; margin-bottom: 5px; }
+            .subtitle { font-size: 20px; margin-bottom: 5px; }
+            .paper-name { font-size: 20px; margin-bottom: 10px; }
+            .top-label { font-size: 20px; font-weight: bold; text-decoration: underline; margin-bottom: 15px; }
             table { width: 60%; margin: 0 auto; border-collapse: collapse; margin-bottom: 30px; }
             th, td { border: 1px solid black; padding: 8px; text-align: left; }
             th { text-align: center; background-color: #f0f0f0; }
-            td.rank { text-align: center; width: 50px; }
-            td.marks { text-align: center; width: 50px; font-weight: bold; }
-            .footer { font-size: 12px; margin-top: 30px; }
+            td.rank { font-size: 20px; text-align: center; width: 50px; }
+            td.name { font-size: 20px; text-align: left; width: 200px; }
+            td.marks { font-size: 20px; text-align: center; width: 50px; font-weight: bold; }
+            .footer { font-size: 20px; margin-top: 30px; }
             .quote { margin-bottom: 5px; font-style: italic; }
             .author { margin-top: 15px; font-weight: bold; }
           </style>
@@ -152,7 +153,7 @@ export default function ClassDetailPage({
               ${topResults.map(r => `
                 <tr>
                   <td class="rank">${r.rank}</td>
-                  <td>${r.studentId.name}</td>
+                  <td class="name">${r.studentId.name}</td>
                   <td class="marks">${r.totalMarks}</td>
                 </tr>
               `).join('')}
