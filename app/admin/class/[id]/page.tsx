@@ -116,7 +116,7 @@ export default function ClassDetailPage({
         <!DOCTYPE html>
         <html>
         <head>
-          <title>${paper.name} - Top ${limit}</title>
+          <title>Grade ${classData?.grade} - ${classData?.name} - ${paper.name} - Top ${limit}</title>
           <style>
             body { font-family: 'Noto Sans Sinhala', sans-serif, Arial; padding: 20px; text-align: center; }
             .header { margin-bottom: 20px; margin-top: 100px;}
