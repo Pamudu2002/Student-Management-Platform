@@ -4,7 +4,7 @@ import dbConnect from '@/lib/mongodb';
 import Result from '@/models/Result';
 import Paper from '@/models/Paper';
 import Student from '@/models/Student';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {

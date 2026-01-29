@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import dbConnect from '@/lib/mongodb';
 import Paper from '@/models/Paper';
 import Class from '@/models/Class';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {

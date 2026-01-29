@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import dbConnect from '@/lib/mongodb';
 import Class from '@/models/Class';
 import Student from '@/models/Student';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 
 export async function GET(
   request: NextRequest,

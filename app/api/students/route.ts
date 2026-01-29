@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import dbConnect from '@/lib/mongodb';
 import Student from '@/models/Student';
 import Class from '@/models/Class';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { authOptions } from '@/lib/auth';
 
 async function generateIndexNumber(grade: number): Promise<string> {
   const lastStudent = await Student.findOne({ grade }).sort({ indexNumber: -1 });
