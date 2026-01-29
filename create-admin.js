@@ -9,16 +9,28 @@ const envFile = fs.readFileSync(envPath, 'utf8');
 
 // Parse environment variables
 const envVars = {};
-envFile.split('\n').forEach(line => {
-  const match = line.match(/^([^#][^=]+)=(.*)$/);
-  if (match) {
-    envVars[match[1].trim()] = match[2].trim();
+envFile.split(/\r?\n/).forEach(line => {
+  const trimmedLine = line.trim();
+  if (!trimmedLine || trimmedLine.startsWith('#')) return;
+  
+  const separatorIndex = trimmedLine.indexOf('=');
+  if (separatorIndex !== -1) {
+    const key = trimmedLine.substring(0, separatorIndex).trim();
+    const value = trimmedLine.substring(separatorIndex + 1).trim().replace(/^["'](.*)["']$/, '$1');
+    envVars[key] = value;
   }
 });
 
-const MONGODB_URI = envVars.MONGODB_URI || 'mongodb://localhost:27017/student-management';
-const ADMIN_USERNAME = envVars.ADMIN_USERNAME || 'admin';
-const ADMIN_PASSWORD = envVars.ADMIN_PASSWORD || 'admin123';
+console.log('Loaded Environment Variables:', Object.keys(envVars));
+
+const MONGODB_URI = envVars.MONGODB_URI;
+const ADMIN_USERNAME = envVars.ADMIN_USERNAME;
+const ADMIN_PASSWORD = envVars.ADMIN_PASSWORD;
+
+if (!MONGODB_URI) {
+  console.error('✗ Error: MONGODB_URI is missing from .env.local');
+  process.exit(1);
+}
 
 const AdminSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },

@@ -101,14 +101,6 @@ export default function StudentPortal() {
           </button>
         </form>
 
-        <div className="mt-8 text-center border-t border-white/10 pt-6">
-          <a
-            href="/admin/login"
-            className="text-sm text-blue-100 hover:text-white transition-colors font-medium hover:underline decoration-orange-400 decoration-2 underline-offset-4"
-          >
-            Are you an Admin? Login here
-          </a>
-        </div>
       </div>
       
       {/* Footer text */}
