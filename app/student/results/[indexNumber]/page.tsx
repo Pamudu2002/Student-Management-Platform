@@ -99,18 +99,8 @@ export default function StudentResults({
           (a: Result, b: Result) => 
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
-        // For Grade 5, show recent main and recent normal
-        if (data.student.grade === 5) {
-          const recentMain = sortedResults.find((r: Result) => r.paperId.isMainPaper);
-          const recentNormal = sortedResults.find((r: Result) => !r.paperId.isMainPaper);
-          const recent = [];
-          if (recentMain) recent.push(recentMain);
-          if (recentNormal) recent.push(recentNormal);
-          setRecentResults(recent);
-        } else {
-          // For Grade 3 and 4, show just the most recent
-          setRecentResults(sortedResults.length > 0 ? [sortedResults[0]] : []);
-        }
+        // Show just the most recent result regardless of grade or paper type
+        setRecentResults(sortedResults.length > 0 ? [sortedResults[0]] : []);
       }
     } catch (error) {
       console.error('Failed to fetch recent result:', error);
