@@ -110,6 +110,8 @@ export default function ClassDetailPage({
         return;
       }
 
+      const showParts = classData?.grade === 5 && paper.isMainPaper;
+
       const htmlContent = `
         <!DOCTYPE html>
         <html>
@@ -122,7 +124,7 @@ export default function ClassDetailPage({
             .subtitle { font-size: 20px; margin-bottom: 5px; }
             .paper-name { font-size: 20px; margin-bottom: 10px; }
             .top-label { font-size: 20px; font-weight: bold; text-decoration: underline; margin-bottom: 15px; }
-            table { width: 60%; margin: 0 auto; border-collapse: collapse; margin-bottom: 30px; }
+            table { width: ${showParts ? '70%' : '60%'}; margin: 0 auto; border-collapse: collapse; margin-bottom: 30px; }
             th, td { border: 1px solid black; padding: 8px; text-align: left; }
             th { text-align: center; background-color: #f0f0f0; }
             td.rank { font-size: 20px; text-align: center; width: 50px; }
@@ -146,6 +148,7 @@ export default function ClassDetailPage({
               <tr>
                 <th>Rank</th>
                 <th>Name</th>
+                ${showParts ? '<th>Part I</th><th>Part II</th>' : ''}
                 <th>Marks</th>
               </tr>
             </thead>
@@ -154,6 +157,7 @@ export default function ClassDetailPage({
                 <tr>
                   <td class="rank">${r.rank}</td>
                   <td class="name">${r.studentId.name}</td>
+                  ${showParts ? `<td class="marks" style="font-weight: normal;">${r.part1Marks ?? '-'}</td><td class="marks" style="font-weight: normal;">${r.part2Marks ?? '-'}</td>` : ''}
                   <td class="marks">${r.totalMarks}</td>
                 </tr>
               `).join('')}
