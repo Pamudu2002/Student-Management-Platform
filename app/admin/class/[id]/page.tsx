@@ -117,7 +117,7 @@ export default function ClassDetailPage({
           <title>${paper.name} - Top ${limit}</title>
           <style>
             body { font-family: 'Noto Sans Sinhala', sans-serif, Arial; padding: 20px; text-align: center; }
-            .header { margin-bottom: 20px; }
+            .header { margin-bottom: 20px; margin-top: 100px;}
             .title { font-size: 24px; font-weight: bold; margin-bottom: 5px; }
             .subtitle { font-size: 20px; margin-bottom: 5px; }
             .paper-name { font-size: 20px; margin-bottom: 10px; }
