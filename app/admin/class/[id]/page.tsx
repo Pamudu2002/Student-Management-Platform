@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { Download, Printer } from 'lucide-react';
 
 interface Class {
   _id: string;
@@ -77,6 +78,111 @@ export default function ClassDetailPage({
       setStudents(data.students);
     } catch (error) {
       console.error('Failed to fetch students:', error);
+    }
+  };
+
+  const handlePrintResults = async (paper: Paper) => {
+    try {
+      // Fetch paper results
+      const response = await fetch(`/api/results?paperId=${paper._id}`);
+      const data = await response.json();
+      const results: any[] = data.results;
+
+      // Filter and Sort
+      const validResults = results.filter((r) => r.totalMarks !== -1 && r.totalMarks !== undefined);
+      
+      // Calculate ranks
+      const sortedResults = validResults.sort((a, b) => b.totalMarks - a.totalMarks);
+      
+      const rankedResults = sortedResults.map((result, index, arr) => {
+         const rank = arr.findIndex(r => r.totalMarks === result.totalMarks) + 1;
+         return { ...result, rank };
+      });
+
+      // Limit
+      const limit = rankedResults.length < 10 ? 5 : 10;
+      const topResults = rankedResults.slice(0, limit);
+
+      // Create Print Window
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        alert('Please allow popups to print results');
+        return;
+      }
+
+      const showParts = classData?.grade === 5 && paper.isMainPaper;
+
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Grade ${classData?.grade} - ${classData?.name} - ${paper.name} - Top ${limit}</title>
+          <style>
+            body { font-family: 'Noto Sans Sinhala', sans-serif, Arial; padding: 20px; text-align: center; }
+            .header { margin-bottom: 20px; margin-top: 100px;}
+            .title { font-size: 24px; font-weight: bold; margin-bottom: 5px; }
+            .subtitle { font-size: 20px; margin-bottom: 5px; }
+            .paper-name { font-size: 20px; margin-bottom: 10px; }
+            .top-label { font-size: 20px; font-weight: bold; text-decoration: underline; margin-bottom: 15px; }
+            table { width: ${showParts ? '70%' : '60%'}; margin: 0 auto; border-collapse: collapse; margin-bottom: 30px; }
+            th, td { border: 1px solid black; padding: 8px; text-align: left; }
+            th { text-align: center; background-color: #f0f0f0; }
+            td.rank { font-size: 20px; text-align: center; width: 50px; }
+            td.name { font-size: 20px; text-align: left; width: 200px; }
+            td.marks { font-size: 20px; text-align: center; width: 50px; font-weight: bold; }
+            .footer { font-size: 20px; margin-top: 30px; }
+            .quote { margin-bottom: 5px; font-style: italic; }
+            .author { margin-top: 15px; font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="title">ශිෂ්‍යත්වයට ගණිත ගැටලු - දුලාංජන රණවීර</div>
+            <div class="subtitle">${classData?.grade} ශ්‍රේණිය</div>
+            <div class="paper-name">${paper.name}</div>
+            <div class="title">Top ${limit}</div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Name</th>
+                ${showParts ? '<th>Part I</th><th>Part II</th>' : ''}
+                <th>Marks</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${topResults.map(r => `
+                <tr>
+                  <td class="rank">${r.rank}</td>
+                  <td class="name">${r.studentId.name}</td>
+                  ${showParts ? `<td class="marks" style="font-weight: normal;">${r.part1Marks ?? '-'}</td><td class="marks" style="font-weight: normal;">${r.part2Marks ?? '-'}</td>` : ''}
+                  <td class="marks">${r.totalMarks}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+
+          <div class="footer">
+            <div class="quote">ප්‍රතිඵල මත ගොඩනැගෙන විශිෂ්ටත්වය -</div>
+            <div class="quote">විශිෂ්ටත්වය මත ගොඩනැගෙන විශ්වාසය</div>
+            <div class="author">-දුලාංජන රණවීර-</div>
+          </div>
+
+          <script>
+            window.onload = function() { window.print(); }
+          </script>
+        </body>
+        </html>
+      `;
+
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+
+    } catch (error) {
+      console.error("Failed to print results", error);
+      alert("Failed to print results");
     }
   };
 
@@ -270,22 +376,36 @@ export default function ClassDetailPage({
               {papers.map((paper) => (
                 <div
                   key={paper._id}
-                  onClick={() => handlePaperClick(paper._id)}
-                  className="card cursor-pointer hover:scale-105 transition-transform"
+                  className="card group relative hover:scale-105 transition-transform"
                 >
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="text-xl font-semibold text-gray-800">
-                      {paper.name}
-                    </h3>
-                    {paper.isMainPaper && (
-                      <span className="bg-primary-100 text-primary-700 px-3 py-1 rounded-full text-xs font-medium">
-                        Main Paper
-                      </span>
-                    )}
+                  <div
+                    onClick={() => handlePaperClick(paper._id)}
+                    className="cursor-pointer"
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="text-xl font-semibold text-gray-800">
+                        {paper.name}
+                      </h3>
+                      {paper.isMainPaper && (
+                        <span className="bg-primary-100 text-primary-700 px-3 py-1 rounded-full text-xs font-medium">
+                          Main Paper
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-gray-600 text-sm">
+                      Click to manage marks
+                    </p>
                   </div>
-                  <p className="text-gray-600 text-sm">
-                    Click to manage marks
-                  </p>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handlePrintResults(paper);
+                    }}
+                    className="absolute top-4 right-4 p-2 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 hover:text-primary-600 transition-colors opacity-0 group-hover:opacity-100"
+                    title="Print Results"
+                  >
+                    <Printer size={20} />
+                  </button>
                 </div>
               ))}
             </div>

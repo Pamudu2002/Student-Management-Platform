@@ -99,18 +99,8 @@ export default function StudentResults({
           (a: Result, b: Result) => 
             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
-        // For Grade 5, show recent main and recent normal
-        if (data.student.grade === 5) {
-          const recentMain = sortedResults.find((r: Result) => r.paperId.isMainPaper);
-          const recentNormal = sortedResults.find((r: Result) => !r.paperId.isMainPaper);
-          const recent = [];
-          if (recentMain) recent.push(recentMain);
-          if (recentNormal) recent.push(recentNormal);
-          setRecentResults(recent);
-        } else {
-          // For Grade 3 and 4, show just the most recent
-          setRecentResults(sortedResults.length > 0 ? [sortedResults[0]] : []);
-        }
+        // Show just the most recent result regardless of grade or paper type
+        setRecentResults(sortedResults.length > 0 ? [sortedResults[0]] : []);
       }
     } catch (error) {
       console.error('Failed to fetch recent result:', error);
@@ -146,6 +136,11 @@ export default function StudentResults({
     }
   };
 
+  const formatMark = (mark: number | undefined) => {
+    if (mark === -1) return 'ab';
+    return mark;
+  };
+
   const getFilteredTopResults = () => {
     let filtered = topResults;
     
@@ -173,6 +168,7 @@ export default function StudentResults({
     
     // Convert to array and sort by total marks, then limit
     const uniqueResults = Array.from(studentBestResults.values())
+      .filter((r) => r.totalMarks !== -1)
       .sort((a, b) => b.totalMarks - a.totalMarks)
       .slice(0, topLimit || 5);
     
@@ -299,7 +295,7 @@ export default function StudentResults({
                            <div className="flex items-center justify-between">
                             <span className="text-blue-900/60 font-bold text-sm uppercase tracking-wide">Total Marks</span>
                             <span className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 drop-shadow-sm">
-                              {result.paperId.isMainPaper ? result.totalMarks : result.marks}
+                              {formatMark(result.paperId.isMainPaper ? result.totalMarks : result.marks)}
                             </span>
                           </div>
                         </div>
@@ -308,11 +304,11 @@ export default function StudentResults({
                            <div className="grid grid-cols-2 gap-3 mt-1">
                              <div className="bg-white/80 p-2.5 rounded-xl border border-blue-100 text-center shadow-sm">
                                <span className="text-[10px] text-gray-400 uppercase font-bold block mb-0.5">Part 1</span>
-                               <span className="text-lg font-black text-gray-700">{result.part1Marks}</span>
+                               <span className="text-lg font-black text-gray-700">{formatMark(result.part1Marks)}</span>
                              </div>
                              <div className="bg-white/80 p-2.5 rounded-xl border border-blue-100 text-center shadow-sm">
                                <span className="text-[10px] text-gray-400 uppercase font-bold block mb-0.5">Part 2</span>
-                               <span className="text-lg font-black text-gray-700">{result.part2Marks}</span>
+                               <span className="text-lg font-black text-gray-700">{formatMark(result.part2Marks)}</span>
                              </div>
                            </div>
                         )}
@@ -432,10 +428,10 @@ export default function StudentResults({
                           {student.grade === 5 && result.paperId.isMainPaper && (
                             <>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-medium">
-                                {result.part1Marks}
+                                {formatMark(result.part1Marks)}
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 font-medium">
-                                {result.part2Marks}
+                                {formatMark(result.part2Marks)}
                               </td>
                             </>
                           )}
@@ -450,9 +446,9 @@ export default function StudentResults({
                             </>
                           )}
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-blue-600 group-hover:text-blue-700">
-                            {result.paperId.isMainPaper
+                            {formatMark(result.paperId.isMainPaper
                               ? result.totalMarks
-                              : result.marks}
+                              : result.marks)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             {new Date(result.createdAt).toLocaleDateString('en-GB')}
@@ -507,7 +503,11 @@ export default function StudentResults({
               </h2>
               {getFilteredTopResults().length > 0 ? (
                 <div className="space-y-3">
-                  {getFilteredTopResults().map((result, index) => {
+                  {getFilteredTopResults().map((result, index, allResults) => {
+                    const rank =
+                      allResults.findIndex(
+                        (r) => r.totalMarks === result.totalMarks
+                      ) + 1;
                     const isCurrentStudent =
                       result.studentId.indexNumber === params.indexNumber;
                     return (
@@ -522,16 +522,16 @@ export default function StudentResults({
                         <div className="flex items-center gap-4">
                           <div
                             className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg shadow-sm border-2 ${
-                              index === 0
+                              rank === 1
                                 ? 'bg-yellow-400 text-white border-yellow-300'
-                                : index === 1
+                                : rank === 2
                                 ? 'bg-gray-300 text-gray-700 border-gray-200'
-                                : index === 2
+                                : rank === 3
                                 ? 'bg-orange-400 text-white border-orange-300'
                                 : 'bg-blue-50 text-blue-600 border-blue-100'
                             }`}
                           >
-                            {index + 1}
+                            {rank}
                           </div>
                           <div>
                             <p className="font-bold text-gray-900 flex items-center gap-2">
@@ -549,14 +549,14 @@ export default function StudentResults({
                         </div>
                         <div className="text-right">
                           <p className="text-2xl font-black text-gray-800">
-                            {result.totalMarks}
+                            {formatMark(result.totalMarks)}
                           </p>
                           {result.part1Marks !== undefined &&
                             result.part2Marks !== undefined && (
                               <p className="text-xs text-gray-500 font-medium mt-1">
-                                <span className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-600">P1: {result.part1Marks}</span>
+                                <span className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-600">P1: {formatMark(result.part1Marks)}</span>
                                 <span className="mx-1 text-gray-300">|</span>
-                                <span className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-600">P2: {result.part2Marks}</span>
+                                <span className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-600">P2: {formatMark(result.part2Marks)}</span>
                               </p>
                             )}
                         </div>
