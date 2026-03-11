@@ -170,7 +170,7 @@ export default function StudentResults({
     const uniqueResults = Array.from(studentBestResults.values())
       .filter((r) => r.totalMarks !== -1)
       .sort((a, b) => b.totalMarks - a.totalMarks)
-      .slice(0, topLimit || 5);
+      .slice(0, topLimit || 10);
     
     console.log(`Filtered results for ${topFilter}:`, uniqueResults.length);
     return uniqueResults;
@@ -499,7 +499,7 @@ export default function StudentResults({
             
             <div className="p-8">
               <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                <span className="text-orange-500">🏆</span> Top {topLimit} Students
+                <span className="text-orange-500">🏆</span> Top 10 Students
               </h2>
               {getFilteredTopResults().length > 0 ? (
                 <div className="space-y-3">

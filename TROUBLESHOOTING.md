@@ -164,11 +164,11 @@ $env:PORT=3001; npm run dev
 - Verify index number: Check in admin panel student list
 
 #### Issue: Top rankings showing incorrect number
-**Cause**: Logic determines top 10 if >10 students, top 5 if ≤10 students
+**Cause**: Logic always shows top 10 students. If fewer than 10 students exist, all students are shown.
 
 **Solutions**:
 - This is expected behavior
-- Add more students to see top 10
+- If fewer than 10 students, all are shown
 - Check that results exist for the recent paper
 
 ---
