@@ -25,8 +25,8 @@ export async function GET(
       classId: student.classId,
     });
 
-    // Determine the limit for top results
-    const limit = totalStudents > 10 ? 10 : 5;
+    // Determine the limit for top results (always top 10, or all if < 10 students)
+    const limit = totalStudents < 10 ? totalStudents : 10;
 
     let topResults: any[] = [];
     let recentPaper: any = null;

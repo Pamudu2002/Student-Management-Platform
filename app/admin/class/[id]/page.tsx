@@ -99,9 +99,7 @@ export default function ClassDetailPage({
          return { ...result, rank };
       });
 
-      // Limit
-      const limit = rankedResults.length < 10 ? 5 : 10;
-      const topResults = rankedResults.slice(0, limit);
+      const topResults = rankedResults.slice(0, 10);
 
       // Create Print Window
       const printWindow = window.open('', '_blank');
@@ -116,7 +114,7 @@ export default function ClassDetailPage({
         <!DOCTYPE html>
         <html>
         <head>
-          <title>Grade ${classData?.grade} - ${classData?.name} - ${paper.name} - Top ${limit}</title>
+          <title>Grade ${classData?.grade} - ${classData?.name} - ${paper.name} - Top 10</title>
           <style>
             body { font-family: 'Noto Sans Sinhala', sans-serif, Arial; padding: 20px; text-align: center; }
             .header { margin-bottom: 20px; margin-top: 100px;}
@@ -140,7 +138,7 @@ export default function ClassDetailPage({
             <div class="title">ශිෂ්‍යත්වයට ගණිත ගැටලු - දුලාංජන රණවීර</div>
             <div class="subtitle">${classData?.grade} ශ්‍රේණිය</div>
             <div class="paper-name">${paper.name}</div>
-            <div class="title">Top ${limit}</div>
+            <div class="title">Top 10</div>
           </div>
 
           <table>
