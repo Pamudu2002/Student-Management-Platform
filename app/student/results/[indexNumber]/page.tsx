@@ -166,11 +166,17 @@ export default function StudentResults({
       }
     }
     
-    // Convert to array and sort by total marks, then limit
-    const uniqueResults = Array.from(studentBestResults.values())
-      .filter((r) => r.totalMarks !== -1)
-      .sort((a, b) => b.totalMarks - a.totalMarks)
-      .slice(0, topLimit || 10);
+    // Convert to array and sort by total marks
+    const sortedResults = Array.from(studentBestResults.values())
+      .filter((r: any) => r.totalMarks !== -1)
+      .sort((a: any, b: any) => b.totalMarks - a.totalMarks);
+      
+    const limit = topLimit || 10;
+    let uniqueResults = sortedResults;
+    if (sortedResults.length > limit) {
+      const thresholdMark = sortedResults[limit - 1].totalMarks;
+      uniqueResults = sortedResults.filter((r: any) => r.totalMarks >= thresholdMark);
+    }
     
     console.log(`Filtered results for ${topFilter}:`, uniqueResults.length);
     return uniqueResults;

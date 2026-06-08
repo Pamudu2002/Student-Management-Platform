@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import Result from '@/models/Result';
@@ -50,8 +51,7 @@ export async function GET(
         const mainResults = await Result.find({ paperId: recentMainPaper._id })
           .populate('studentId')
           .populate('paperId')
-          .sort({ totalMarks: -1 })
-          .limit(limit + 5); // Fetch extra for potential ties/filtering
+          .sort({ totalMarks: -1 }); // Removed limit to fetch all for potential ties/filtering
         topResults.push(...mainResults);
       }
 
@@ -59,8 +59,7 @@ export async function GET(
         const normalResults = await Result.find({ paperId: recentNormalPaper._id })
           .populate('studentId')
           .populate('paperId')
-          .sort({ totalMarks: -1 })
-          .limit(limit + 5);
+          .sort({ totalMarks: -1 }); // Removed limit
         topResults.push(...normalResults);
       }
     } else {
@@ -90,9 +89,14 @@ export async function GET(
           }
         }
         // Convert to array and sort by total marks
-        topResults = Array.from(studentBestResults.values())
-          .sort((a, b) => b.totalMarks - a.totalMarks)
-          .slice(0, limit);
+        const sortedResults = Array.from(studentBestResults.values())
+          .sort((a, b) => b.totalMarks - a.totalMarks);
+        
+        topResults = sortedResults;
+        if (sortedResults.length > limit) {
+          const thresholdMark = sortedResults[limit - 1].totalMarks;
+          topResults = sortedResults.filter((r: any) => r.totalMarks >= thresholdMark);
+        }
       }
     }
 
