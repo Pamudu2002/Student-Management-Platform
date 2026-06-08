@@ -99,7 +99,11 @@ export default function ClassDetailPage({
          return { ...result, rank };
       });
 
-      const topResults = rankedResults.slice(0, 10);
+      let topResults = rankedResults;
+      if (rankedResults.length > 10) {
+        const thresholdMark = rankedResults[9].totalMarks;
+        topResults = rankedResults.filter((r: any) => r.totalMarks >= thresholdMark);
+      }
 
       // Create Print Window
       const printWindow = window.open('', '_blank');
