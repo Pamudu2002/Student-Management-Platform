@@ -20,6 +20,7 @@ export default function AdminDashboard() {
   const [selectedGrade, setSelectedGrade] = useState<number | null>(null);
   const [showAddAdmin, setShowAddAdmin] = useState(false);
   const [showAddClass, setShowAddClass] = useState(false);
+  const [editingClass, setEditingClass] = useState<Class | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -182,9 +183,20 @@ export default function AdminDashboard() {
                   Grade {classItem.grade}
                 </span>
               </div>
-              <p className="text-gray-600 text-sm">
-                Click to manage students and papers
-              </p>
+              <div className="flex justify-between items-center gap-2">
+                <p className="text-gray-600 text-sm">
+                  Click to manage students and papers
+                </p>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditingClass(classItem);
+                  }}
+                  className="text-sm font-medium text-primary-600 hover:text-primary-800 px-2 py-1 rounded hover:bg-primary-50 transition-colors"
+                >
+                  Edit
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -210,10 +222,22 @@ export default function AdminDashboard() {
 
       {/* Add Class Modal */}
       {showAddClass && (
-        <AddClassModal
+        <ClassFormModal
           onClose={() => setShowAddClass(false)}
           onSuccess={() => {
             setShowAddClass(false);
+            fetchClasses();
+          }}
+        />
+      )}
+
+      {/* Edit Class Modal */}
+      {editingClass && (
+        <ClassFormModal
+          existingClass={editingClass}
+          onClose={() => setEditingClass(null)}
+          onSuccess={() => {
+            setEditingClass(null);
             fetchClasses();
           }}
         />
@@ -318,15 +342,18 @@ function AddAdminModal({
   );
 }
 
-function AddClassModal({
+function ClassFormModal({
+  existingClass,
   onClose,
   onSuccess,
 }: {
+  existingClass?: Class;
   onClose: () => void;
   onSuccess: () => void;
 }) {
-  const [name, setName] = useState('');
-  const [grade, setGrade] = useState(3);
+  const isEdit = !!existingClass;
+  const [name, setName] = useState(existingClass?.name ?? '');
+  const [grade, setGrade] = useState(existingClass?.grade ?? 3);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -336,18 +363,23 @@ function AddClassModal({
     setLoading(true);
 
     try {
-      const response = await fetch('/api/classes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, grade }),
-      });
+      const response = await fetch(
+        isEdit ? `/api/classes/${existingClass._id}` : '/api/classes',
+        {
+          method: isEdit ? 'PATCH' : 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, grade }),
+        }
+      );
 
       const data = await response.json();
 
       if (response.ok) {
         onSuccess();
       } else {
-        setError(data.error || 'Failed to create class');
+        setError(
+          data.error || (isEdit ? 'Failed to update class' : 'Failed to create class')
+        );
       }
     } catch (err) {
       setError('An error occurred');
@@ -360,7 +392,7 @@ function AddClassModal({
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-2xl p-8 w-full max-w-md">
         <h2 className="text-2xl font-bold text-primary-700 mb-6">
-          Add New Class
+          {isEdit ? 'Edit Class' : 'Add New Class'}
         </h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -408,7 +440,13 @@ function AddClassModal({
               disabled={loading}
               className="flex-1 btn-primary disabled:opacity-50"
             >
-              {loading ? 'Adding...' : 'Add Class'}
+              {loading
+                ? isEdit
+                  ? 'Saving...'
+                  : 'Adding...'
+                : isEdit
+                ? 'Save Changes'
+                : 'Add Class'}
             </button>
           </div>
         </form>
